@@ -1,0 +1,32 @@
+---
+title: "Analysis of how severe weather events are impacting US population health"
+author: "Krisztian Gyuris"
+date: "24 Jan 2015"
+output: html_document
+---
+
+## Synopsis
+
+The goal of this report to show the most harmfull events that can be affect the health of united states population based on the data published by the U.S. National Oceanic and Atmospheric Administration's (NOAA) from 1950 - 2011. **ADD GOALS AND FINDINGS TO SYNOPSIS**
+
+## Data Processing 
+
+### Basic Setup 
+Importing libraries, setting up some basic variables.
+
+```{r, echo=TRUE}
+setwd('/Users/krisztiangyuris/dev/datasciencecoursera/RepData_PeerAssessment2')
+library(R.utils)
+library(ggplot2)
+```
+
+### Loading the Data
+
+Loading and cleaning the data
+
+```{r, echo=TRUE}
+cache=TRUE
+bunzip2("repdata-data-StormData.csv.bz2", overwrite=T, remove=F)
+```
+## Results
+
