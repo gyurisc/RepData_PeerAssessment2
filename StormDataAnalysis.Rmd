@@ -7,7 +7,7 @@ output: html_document
 
 ## Synopsis
 
-The goal of this report to show the most harmfull events that can be affect the health of united states population based on the data published by the U.S. National Oceanic and Atmospheric Administration's (NOAA) from 1950 - 2011. **ADD GOALS AND FINDINGS TO SYNOPSIS**
+The goal of this report to show the most harmfull events that can be affect the health of united states population. Inorder to investigate this hypothesis we have gathered the data from U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. The events in the database start in the year 1950 and end in November 2011. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage. From this data the **TORNADO** seems to have the greatest health impact. The biggest economical impact is caused by **FLOOD** according to the data.
 
 ## Data Processing 
 
@@ -18,6 +18,8 @@ Importing libraries, setting up some basic variables.
 setwd('/Users/krisztiangyuris/dev/datasciencecoursera/RepData_PeerAssessment2')
 library(R.utils)
 library(ggplot2)
+library(knitr)
+opts_chunk$set(echo=TRUE, cache=TRUE)
 ```
 
 ### Loading the Data
@@ -27,6 +29,103 @@ Loading and cleaning the data
 ```{r, echo=TRUE}
 cache=TRUE
 bunzip2("repdata-data-StormData.csv.bz2", overwrite=T, remove=F)
+stormData <- read.csv("repdata-data-StormData.csv")
+```
+
+Getting the columns that are interesting for us and cleaning them up. 
+```{r, echo=TRUE}
+stormData <- stormData[, c("EVTYPE", "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")]
+stormData$EVTYPE <- toupper(stormData$EVTYPE)
+stormData$PROPDMGEXP <- toupper(stormData$PROPDMGEXP)
+stormData$CROPDMGEXP <- toupper(stormData$CROPDMGEXP)
+```
+
+Correcting the event type names
+```{r, echo=TRUE}
+stormData[grep("TORNADO*|TORNDAO*",stormData$EVTYPE),c("EVTYPE")] <- "TORNADO"
+stormData[grep("HURRICANE*",stormData$EVTYPE),c("EVTYPE")] <- "HURRICANE"
+stormData[grep("HAIL*",stormData$EVTYPE),c("EVTYPE")] <- "HAIL"
+stormData[grep("HEAVY RAIN*|HVY RAIN*",stormData$EVTYPE),c("EVTYPE")] <- "HEAVY RAIN"
+stormData[grep("WATERSPOUT*",stormData$EVTYPE),c("EVTYPE")] <- "WATERSPOUT"
+stormData[grep("THUNDERSTORM WINDS*|THUNDERSTORM WIN*|TSTM WIND|TSTMW*",stormData$EVTYPE),c("EVTYPE")] <- "THUNDERSTORM WIND"
+stormData[grep("THUNDEERSTORM*|THUNDERESTORM*|THUNDERTORM*|THUNERSTORM*|THUNDERSTROM*",stormData$EVTYPE),c("EVTYPE")] <- "THUNDERSTORM WIND"
+stormData[grep("RIP CURRENT*",stormData$EVTYPE),c("EVTYPE")] <- "RIP CURRENT"
+stormData[grep("STRONG WIND*",stormData$EVTYPE),c("EVTYPE")] <- "STRONG WIND"
+stormData[grep("LIGHTNING*|LIGHTIN*|LIGNTNING*",stormData$EVTYPE),c("EVTYPE")] <- "LIGHTNING"
+stormData[grep("FLASH FLOOD*",stormData$EVTYPE),c("EVTYPE")] <- "FLASH FLOOD"
+stormData[grep("WINTER WEATHER*",stormData$EVTYPE),c("EVTYPE")] <- "WINTER WEATHER"
+stormData[grep("WINTER STORM*",stormData$EVTYPE),c("EVTYPE")] <- "WINTER STORM"
+stormData[grep("TROPICAL STORM*",stormData$EVTYPE),c("EVTYPE")] <- "TROPICAL STORM"
+stormData[grep("HEAVY SNOW*",stormData$EVTYPE),c("EVTYPE")] <- "HEAVY SNOW"
+stormData[grep("WILDFIRE*|WILD FIRE*|WILD/FOREST*",stormData$EVTYPE),c("EVTYPE")] <- "WILD FIRE"
+stormData[grep("FLOODING|FLOOD/RIVER FLOOD|FLOODS|FLOOD/RAIN/WINDS",stormData$EVTYPE),c("EVTYPE")] <- "FLOOD"
+stormData[grep("HEAVY RAIN*|HVY RAIN|RAIN (HEAVY)",stormData$EVTYPE),c("EVTYPE")] <- "HEAVY RAIN"
+```
+
+Fixing the exponents for both property and crop damage figures.
+```{r, echo=TRUE}
+stormData$PROPDMGEXP = as.character(stormData$PROPDMGEXP)
+stormData$PROPDMGEXP[stormData$PROPDMGEXP=='H'] = "2"
+stormData$PROPDMGEXP[stormData$PROPDMGEXP=='K'] = "3"
+stormData$PROPDMGEXP[stormData$PROPDMGEXP=='M'] = "6"
+stormData$PROPDMGEXP[stormData$PROPDMGEXP=='B'] = "9"
+stormData$PROPDMGEXP[stormData$PROPDMGEXP==''] = "0"
+stormData$PROPDMGEXP = as.numeric(stormData$PROPDMGEXP)
+stormData$PROPDMGEXP[is.na(stormData$PROPDMGEXP)] = 0
+
+stormData$CROPDMGEXP = as.character(stormData$CROPDMGEXP)
+stormData$CROPDMGEXP[stormData$CROPDMGEXP=='H'] = "2"
+stormData$CROPDMGEXP[stormData$CROPDMGEXP=='K'] = "3"
+stormData$CROPDMGEXP[stormData$CROPDMGEXP=='M'] = "6"
+stormData$CROPDMGEXP[stormData$CROPDMGEXP=='B'] = "9"
+stormData$CROPDMGEXP[stormData$CROPDMGEXP==''] = "0"
+stormData$CROPDMGEXP = as.numeric(stormData$CROPDMGEXP)
+stormData$CROPDMGEXP[is.na(stormData$CROPDMGEXP)] = 0
+```
+Creating property, crop and total damage columns. 
+```{r, echo=TRUE}
+stormData$PropertyDamage = stormData$PROPDMG * 10^stormData$PROPDMGEXP
+stormData$CropDamage = stormData$CROPDMG * 10^stormData$CROPDMGEXP
+stormData$TotalDamage = stormData$PropertyDamage + stormData$CropDamage
 ```
 ## Results
 
+### Most harmful events to population health 
+Adding together fatalities and injuries and printing the top 10 events ordered by health impact. 
+```{r, echo=TRUE}
+stormData$HealthImpact = stormData$FATALITIES + stormData$INJURIES
+healthImp <- tapply(stormData$HealthImpact, stormData$EVTYPE, sum)
+healthImpDF <- data.frame(eventtype=names(healthImp), impact=as.numeric(healthImp))
+healthImpDF <- healthImpDF[order(healthImpDF$impact,decreasing=TRUE),]
+```
+
+Across the United States, the following types of events are most harmful with respect to population health.
+
+```{r, echo=TRUE}
+healthImpDF <- healthImpDF[1:10,]
+print(healthImpDF)
+
+par(mar=c(10,7,2,2), las=3)
+barplot(healthImpDF$impact, names.arg=healthImpDF$eventtype, col=healthImpDF$eventtype, ylab="Health Impact", main="Top 10 event type by health impact")
+```
+
+The top harmfull event is **TORNADO**
+
+### Events with the greates economic impact
+```{r, echo=TRUE}
+economyImp <- tapply(stormData$TotalDamage, stormData$EVTYPE, sum)
+economyImpDF <- data.frame(eventtype=names(economyImp), impact=as.numeric(economyImp))
+economyImpDF <- economyImpDF[order(economyImpDF$impact,decreasing=TRUE),]
+```
+
+Across the United States, the following types of events have the greatest economic consequences.
+
+```{r, echo=TRUE}
+economyImpDF <- economyImpDF[1:10,]
+print(economyImpDF)
+
+par(mar=c(10,7,2,2), las=3)
+barplot(economyImpDF$impact, names.arg=economyImpDF$eventtype, col=economyImpDF$eventtype, ylab="Economical Impact", main="Top 10 event type by economy impact")
+```
+
+The top harmfull event is **FLOOD** by economy impact.
